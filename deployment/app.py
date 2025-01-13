@@ -58,6 +58,8 @@ elif page == "About Model":
     st.table(data_categories)
     st.write("Based on the Silhouette Score and Davies-Bouldin Index, K-Means model trained with data content from experiment 4 performed well due to comparable cluster quality with and richer explanation than control group.")
 
+    st.write("##### The final K-Means model configuration is **k = 5** and **random_state = 10**.")
+
     st.markdown("**1. Silhouette Score**")
     st.write("This metric measures similarity of a point to its cluster compared to other clusters. The score range is from -1 to +1. Score near to +1 indicates points are well-clustered.")
     # Visualization Silhouette Score
