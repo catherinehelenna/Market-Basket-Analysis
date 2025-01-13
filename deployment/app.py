@@ -1,22 +1,25 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy import stats
+import numpy as np
 from PIL import Image
 import joblib
-# from customer_segment_eda import eda_result
-# from customer_segment_pred import pred_result
 
 # Navigation
-st.title("Mall Customer Segmentation and Recommendation Strategies")
+st.title("Segmenting Mall Customers for Strategic Marketing Approaches")
 page = st.selectbox("Select a page", ["Home", "EDA","About Model","Segmentation Result","Go Predict!"])
 
 if page == "Home":
-    st.header("Welcome to the Home Page")
-    st.write("The goal of this project is to give marketing recommendation strategies based on the mall customer's profile. We will use clustering algorithm to group customers with similar characteristics.")
+    st.header("Warm Welcome!")
 
-    
+    st.write("Welcome to the Mall Customer Segmentation Tool. This application helps you classify customers into segments based on their spending habits and preferences and choose targeted marketing strategies.")
+
+    st.write("### Tips:")
+    st.write("1. Use Select Box above to explore the data analysis, model development, segmentation result, and deployment.")
+    st.write("2. Want to know how our dataset is like? Please visit the **EDA** section.")
+    st.write("3. Interested in understanding the model and evaluation metrics? We got you covered in **About Model** section.")
+    st.write("4. See how we interpret our clustering result in **Segmentation Result** section.")
+    st.write("5. The fun part: Try **Go Predict!** yourself and see how we categorize your customer and recommended marketing approaches to your customer.")
+
 elif page == "EDA":
     st.header("Exploratory Data Analysis")
 
@@ -29,7 +32,7 @@ elif page == "EDA":
     st.write(data.head())
     st.markdown("**About the dataset**:")
     st.write("The data is from membership cards which provide Customer ID, age, gender, annual income, and spending score. Spending Score is something you assign to the customer based on your defined parameters like customer behavior and purchasing data.")
-
+    st.markdown("[Click here to access the dataset source](https://www.kaggle.com/datasets/vjchoudhary7/customer-segmentation-tutorial-in-python)")
     # show results
     st.markdown("**1. Pair Plot of Original Data**")
     # Load image into a PIL Image object
@@ -100,9 +103,9 @@ elif page == "Segmentation Result":
     customer_profile = {
         'customer_type': [
             'High income, low spending',
-            'High senior income and spending',
+            'Seniors with high income and spending',
             'Low income and low spending',
-            'Low income, high spending',
+            'Young Generation with low income, high spending',
             'Medium income and spending'
         ],
         'income_range':['>$70k','>$70k','<$40k','<$40k','$40k-$70k'],
@@ -125,3 +128,101 @@ elif page == "Segmentation Result":
     st.write("This result indicated that we need more data samples to ensure some age groups are well-represented in each cluster.")
 else:
     st.header("Prediction Page")
+
+    # Load the preprocessor and model with a context manager
+    with open("preprocess.joblib", "rb") as file:
+        preprocessor = joblib.load(file)
+
+    with open("kmeans-best-model.joblib", "rb") as file2:
+        kmeans_model = joblib.load(file2)
+    
+    # Dataset loading and overview
+    data = pd.read_csv("final_dataset.csv")
+    # Drop the 'Unnamed: 0' column if it exists
+    if 'Unnamed: 0' in data.columns:
+        data = data.drop(columns=['Unnamed: 0'])
+
+    # Get numeric features
+    numeric_features = data.select_dtypes(include=np.number)
+    numeric_feature_range = numeric_features.agg(['min', 'max'])
+
+    # Get categorical features
+    categorical_features = data.select_dtypes(exclude=np.number)
+    categorical_feature_groups = categorical_features.apply(lambda x: x.unique().tolist())
+
+    # UI for Numeric Features
+    st.subheader("Input annual income (thousand dollars) and spending score (1-100)")
+    st.write("Adjust the range for inputs using sliders:")
+    numeric_inputs = {}
+    for feature in numeric_features.columns:
+        min_value = numeric_feature_range.loc['min', feature]
+        max_value = numeric_feature_range.loc['max', feature]
+        numeric_inputs[feature] = st.slider(
+            label=f"{feature}",
+            min_value=float(min_value),
+            max_value=float(max_value)+1,
+            value=float((min_value + max_value) / 2)
+        )
+
+    # UI for Categorical Features
+    st.subheader("Input age group category")
+    st.write("Please choose the age group category of the customer. Please refer to the Segmentation Result for the classification of age based on age group.")
+    categorical_inputs = {}
+    for feature in categorical_features.columns:
+        options = categorical_feature_groups[feature]
+        categorical_inputs[feature] = st.selectbox(
+            label=f"{feature}",
+            options=options
+        )
+    
+    # Combine the numeric and categorical inputs
+    user_inputs = {}
+
+    # Add numeric inputs
+    for feature, selected_range in numeric_inputs.items():
+        # Take the midpoint of the range for simplicity
+        user_inputs[feature] = np.mean(selected_range)
+
+    # Add categorical inputs
+    for feature, selected_value in categorical_inputs.items():
+        user_inputs[feature] = selected_value
+
+    # Create a DataFrame from user inputs
+    user_input_df = pd.DataFrame([user_inputs])
+
+    # Reorder the DataFrame columns to match X_train_log_modified
+    user_input_df = user_input_df[data.columns]
+
+    # Display the combined and ordered DataFrame
+    st.header("Combined User Input Data")
+    st.write(user_input_df)
+
+        # Preprocess user input
+    if preprocessor is not None:
+        user_input_processed = preprocessor.transform(user_input_df)
+    else:
+        st.warning("Preprocessor is not available.")
+
+    # marketing intiative dictionary
+    marketing_strategy = {0: 'Customer has high annual income but low spending. Recommended marketing approaches are personalized offers, loyalty program through points for repeat purchases, premium branding.'
+                          ,1: 'Senior customer with high annual income and high spending.  Upselling or cross-selling by introducing complementary products to what they are purchasing, Establishing VIP Events to build a sense of community and loyalty while showcasing premium offerings, and promoting high-end products suitable for their lifestyle are advisable.'
+                          ,2: 'Customer has low annual income and spending. Consider value promotions, bundling offers, and referral programs to encourage word-of-mouth for increasing sales.'
+                          ,3: 'Customer is part of young, productive population with low annual income but high spending. Try FOMO and trends (limited-time offers to create sense of urgency), engagement via influencers, emphasize experience.'
+                          ,4: 'Customer is a mediocre spender and earner. Utilize targeted campaigns for previously popular products, reward programs through cashback and point, lifestyle-related product promotions.'
+                          }
+
+    # Predict the house price
+    if kmeans_model is not None:
+        st.header("Predicted Customer Profile")
+        try:
+            prediction_result = kmeans_model.predict(user_input_processed)[0]
+            # Print the corresponding marketing strategy
+            if prediction_result in marketing_strategy:
+                st.success(f"Prediction result: {marketing_strategy[prediction_result]}")
+            else:
+                st.write("No marketing strategy found for the given prediction.")
+        except Exception as e:
+            st.error(f"Error during prediction: {e}")
+    else:
+        st.warning("Please upload a model to make predictions.")
+
