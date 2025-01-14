@@ -57,9 +57,7 @@ elif page == "About Model":
                   'data_content':['spending score, annual income, age, gender','spending score, annual income, age','spending score, annual income, age_group, gender','spending score, annual income, age_group','spending score, annual income']}
     st.table(data_categories)
     st.write("Based on the Silhouette Score and Davies-Bouldin Index, K-Means model trained with data content from experiment 4 performed well due to comparable cluster quality with and richer explanation than control group.")
-
     st.write("##### The final K-Means model configuration is **k = 5** and **random_state = 10**.")
-
     st.markdown("**1. Silhouette Score**")
     st.write("This metric measures similarity of a point to its cluster compared to other clusters. The score range is from -1 to +1. Score near to +1 indicates points are well-clustered.")
     # Visualization Silhouette Score
@@ -73,13 +71,6 @@ elif page == "About Model":
     image_dbi = Image.open("db index scores.png")
     # Display image
     st.image(image_dbi, caption="Among all experimental models,  K-Means trained with dataset 4 still had a good clustering quality with DB index of 0.88 which was less than 1.", use_container_width=True)    
-
-    st.markdown("**2. Davies-Bouldin Index**")
-    st.write("This metric measures ratio of average intra-cluster distance to average inter-cluster distance. The smaller, the better the clustering since the separation is more apparent.")
-    # Visualization DB Index
-    image_dbi = Image.open("db index scores.png")
-    # Display image
-    st.image(image_dbi, caption="Among all experimental models,  K-Means trained with dataset 4 still had a good clustering quality with DB index of 0.88 which was less than 1.", use_container_width=True) 
 
 elif page == "Segmentation Result":
     st.header("Customer Segmentation Result")
@@ -213,9 +204,9 @@ else:
                           ,4: 'Customer is a mediocre spender and earner. Utilize targeted campaigns for previously popular products, reward programs through cashback and point, lifestyle-related product promotions.'
                           }
 
-    # Predict the house price
+    # Predict the customer profile and recommended marketing approach
     if kmeans_model is not None:
-        st.header("Predicted Customer Profile")
+        st.header("Predicted Customer Profile and Marketing Approach Suggestions")
         try:
             prediction_result = kmeans_model.predict(user_input_processed)[0]
             # Print the corresponding marketing strategy
@@ -227,4 +218,3 @@ else:
             st.error(f"Error during prediction: {e}")
     else:
         st.warning("Please upload a model to make predictions.")
-
